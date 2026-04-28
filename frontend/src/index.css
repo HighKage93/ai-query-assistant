@@ -1,0 +1,202 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #0d0d0d;
+  color: #e0e0e0;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#root { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+
+/* ── Auth ── */
+.auth-wrap { display: flex; align-items: center; justify-content: center; width: 100%; }
+
+.auth-card {
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 14px;
+  padding: 40px;
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.auth-card h1 { font-size: 1.4rem; color: #fff; text-align: center; }
+
+.tabs { display: flex; gap: 8px; }
+
+.tabs button {
+  flex: 1;
+  padding: 10px;
+  background: #252525;
+  border: 1px solid #333;
+  border-radius: 8px;
+  color: #777;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.15s;
+}
+
+.tabs button.active { background: #4f46e5; border-color: #4f46e5; color: #fff; }
+
+.auth-card form { display: flex; flex-direction: column; gap: 12px; }
+
+.auth-card input {
+  padding: 12px 14px;
+  background: #252525;
+  border: 1px solid #333;
+  border-radius: 8px;
+  color: #e0e0e0;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.auth-card input:focus { border-color: #4f46e5; }
+
+.auth-card button[type="submit"] {
+  padding: 12px;
+  background: #4f46e5;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.auth-card button[type="submit"]:hover { background: #4338ca; }
+
+.err { color: #f87171; font-size: 0.85rem; }
+
+/* ── Main app ── */
+.app {
+  width: 100%;
+  max-width: 820px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 24px;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #1f1f1f;
+  margin-bottom: 12px;
+  flex-shrink: 0;
+}
+
+header h1 { font-size: 1.2rem; color: #fff; }
+
+.user-bar { display: flex; align-items: center; gap: 12px; color: #888; font-size: 0.9rem; }
+
+.btn-ghost {
+  padding: 6px 14px;
+  background: transparent;
+  border: 1px solid #333;
+  border-radius: 6px;
+  color: #888;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.15s;
+}
+
+.btn-ghost:hover { background: #1f1f1f; color: #ccc; }
+
+/* ── Chat ── */
+.chat {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 8px 0;
+  scrollbar-width: thin;
+  scrollbar-color: #2a2a2a transparent;
+}
+
+.empty { text-align: center; color: #3a3a3a; margin: auto; font-size: 1rem; }
+
+.bubble { display: flex; flex-direction: column; gap: 4px; max-width: 78%; }
+
+.bubble.user { align-self: flex-end; align-items: flex-end; }
+
+.bubble.assistant { align-self: flex-start; }
+
+.label { font-size: 0.7rem; color: #555; text-transform: uppercase; letter-spacing: 0.06em; }
+
+.bubble p {
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 0.93rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.bubble.user p { background: #4f46e5; color: #fff; border-radius: 12px 12px 4px 12px; }
+
+.bubble.assistant p { background: #1e1e1e; color: #d0d0d0; border-radius: 12px 12px 12px 4px; }
+
+.thinking { color: #555 !important; font-style: italic; }
+
+/* ── Error bar ── */
+.error-bar {
+  padding: 10px 14px;
+  background: #2d1010;
+  border: 1px solid #5c1f1f;
+  border-radius: 8px;
+  color: #f87171;
+  font-size: 0.88rem;
+  margin-bottom: 8px;
+  flex-shrink: 0;
+}
+
+/* ── Query bar ── */
+.query-bar {
+  display: flex;
+  gap: 8px;
+  padding-top: 14px;
+  border-top: 1px solid #1f1f1f;
+  margin-top: 8px;
+  flex-shrink: 0;
+}
+
+.query-bar input {
+  flex: 1;
+  padding: 12px 16px;
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 10px;
+  color: #e0e0e0;
+  font-size: 0.93rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.query-bar input:focus { border-color: #4f46e5; }
+
+.query-bar button {
+  padding: 12px 22px;
+  background: #4f46e5;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 0.93rem;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.query-bar button:hover:not(:disabled) { background: #4338ca; }
+
+.query-bar button:disabled { opacity: 0.45; cursor: not-allowed; }
