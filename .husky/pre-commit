@@ -1,0 +1,26 @@
+#!/bin/sh
+set -e
+
+ROOT="$(git rev-parse --show-toplevel)"
+
+echo "\n🔍 Pre-commit checks starting...\n"
+
+echo "→ [1/6] Backend: TypeScript check"
+(cd "$ROOT/backend" && npx tsc --noEmit)
+
+echo "→ [2/6] Backend: Lint"
+(cd "$ROOT/backend" && npm run lint)
+
+echo "→ [3/6] Backend: Tests"
+(cd "$ROOT/backend" && npm test)
+
+echo "→ [4/6] Frontend: TypeScript check"
+(cd "$ROOT/frontend" && npx tsc --noEmit)
+
+echo "→ [5/6] Frontend: Lint (enforces no inline styles)"
+(cd "$ROOT/frontend" && npm run lint)
+
+echo "→ [6/6] Frontend: Tests"
+(cd "$ROOT/frontend" && npm test)
+
+echo "\n✓ All checks passed — committing.\n"

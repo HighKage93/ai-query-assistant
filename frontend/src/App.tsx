@@ -71,48 +71,77 @@ function App() {
 
   if (token) {
     return (
-      <div className="app">
-        <header>
-          <h1>AI Query Assistant</h1>
-          <div className="user-bar">
+      <div className="w-full max-w-3xl h-screen flex flex-col px-6 py-5">
+        <header className="flex justify-between items-center pb-4 border-b border-[#1f1f1f] mb-3 shrink-0">
+          <h1 className="text-lg font-semibold text-white">AI Query Assistant</h1>
+          <div className="flex items-center gap-3 text-[#888] text-sm">
             <span>
-              Hello, <strong>{username}</strong>
+              Hello, <strong className="text-neutral-300">{username}</strong>
             </span>
-            <button className="btn-ghost" onClick={handleLogout}>
+            <button
+              className="px-3.5 py-1.5 bg-transparent border border-[#333] rounded-md text-[#888] text-sm cursor-pointer transition-all hover:bg-[#1f1f1f] hover:text-[#ccc]"
+              onClick={handleLogout}
+            >
               Logout
             </button>
           </div>
         </header>
 
-        <div className="chat">
+        <div className="flex-1 overflow-y-auto flex flex-col gap-3.5 py-2 scrollbar-thin">
           {messages.length === 0 && (
-            <p className="empty">Ask me anything...</p>
+            <p className="text-center text-[#3a3a3a] m-auto text-base">Ask me anything...</p>
           )}
           {messages.map((msg, i) => (
-            <div key={i} className={`bubble ${msg.role}`}>
-              <span className="label">{msg.role === 'user' ? 'You' : 'AI'}</span>
-              <p>{msg.content}</p>
+            <div
+              key={i}
+              className={`flex flex-col gap-1 max-w-[78%] ${
+                msg.role === 'user' ? 'self-end items-end' : 'self-start'
+              }`}
+            >
+              <span className="text-[0.7rem] text-[#555] uppercase tracking-widest">
+                {msg.role === 'user' ? 'You' : 'AI'}
+              </span>
+              <p
+                className={`px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap break-words ${
+                  msg.role === 'user'
+                    ? 'bg-indigo-600 text-white rounded-[12px_12px_4px_12px]'
+                    : 'bg-[#1e1e1e] text-[#d0d0d0] rounded-[12px_12px_12px_4px]'
+                }`}
+              >
+                {msg.content}
+              </p>
             </div>
           ))}
           {loading && (
-            <div className="bubble assistant">
-              <span className="label">AI</span>
-              <p className="thinking">Thinking...</p>
+            <div className="flex flex-col gap-1 max-w-[78%] self-start">
+              <span className="text-[0.7rem] text-[#555] uppercase tracking-widest">AI</span>
+              <p className="px-4 py-3 text-sm leading-relaxed bg-[#1e1e1e] text-[#555] italic rounded-[12px_12px_12px_4px]">
+                Thinking...
+              </p>
             </div>
           )}
         </div>
 
-        {queryError && <div className="error-bar">{queryError}</div>}
+        {queryError && (
+          <div className="px-4 py-2.5 bg-[#2d1010] border border-[#5c1f1f] rounded-lg text-red-400 text-sm mb-2 shrink-0">
+            {queryError}
+          </div>
+        )}
 
-        <form className="query-bar" onSubmit={handleQuery}>
+        <form className="flex gap-2 pt-3.5 border-t border-[#1f1f1f] mt-2 shrink-0" onSubmit={handleQuery}>
           <input
+            className="flex-1 px-4 py-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl text-neutral-200 text-sm outline-none focus:border-indigo-600 transition-colors"
             type="text"
             placeholder="Type your question..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             disabled={loading}
           />
-          <button type="submit" disabled={loading || !query.trim()}>
+          <button
+            className="px-5 py-3 bg-indigo-600 text-white border-none rounded-xl cursor-pointer text-sm transition-colors hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+            type="submit"
+            disabled={loading || !query.trim()}
+          >
             Send
           </button>
         </form>
@@ -121,25 +150,34 @@ function App() {
   }
 
   return (
-    <div className="auth-wrap">
-      <div className="auth-card">
-        <h1>AI Query Assistant</h1>
-        <div className="tabs">
+    <div className="flex items-center justify-center w-full">
+      <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl p-10 w-full max-w-sm flex flex-col gap-5">
+        <h1 className="text-xl font-semibold text-white text-center">AI Query Assistant</h1>
+        <div className="flex gap-2">
           <button
-            className={authView === 'login' ? 'active' : ''}
+            className={`flex-1 py-2.5 border rounded-lg text-sm cursor-pointer transition-all ${
+              authView === 'login'
+                ? 'bg-indigo-600 border-indigo-600 text-white'
+                : 'bg-[#252525] border-[#333] text-[#777]'
+            }`}
             onClick={() => { setAuthView('login'); setAuthError(''); }}
           >
             Login
           </button>
           <button
-            className={authView === 'register' ? 'active' : ''}
+            className={`flex-1 py-2.5 border rounded-lg text-sm cursor-pointer transition-all ${
+              authView === 'register'
+                ? 'bg-indigo-600 border-indigo-600 text-white'
+                : 'bg-[#252525] border-[#333] text-[#777]'
+            }`}
             onClick={() => { setAuthView('register'); setAuthError(''); }}
           >
             Register
           </button>
         </div>
-        <form onSubmit={handleAuth}>
+        <form className="flex flex-col gap-3" onSubmit={handleAuth}>
           <input
+            className="px-3.5 py-3 bg-[#252525] border border-[#333] rounded-lg text-neutral-200 text-sm outline-none focus:border-indigo-600 transition-colors w-full"
             type="text"
             placeholder="Username"
             value={formUser}
@@ -147,14 +185,19 @@ function App() {
             required
           />
           <input
+            className="px-3.5 py-3 bg-[#252525] border border-[#333] rounded-lg text-neutral-200 text-sm outline-none focus:border-indigo-600 transition-colors w-full"
             type="password"
             placeholder="Password"
             value={formPass}
             onChange={(e) => setFormPass(e.target.value)}
             required
           />
-          {authError && <p className="err">{authError}</p>}
-          <button type="submit">
+          {authError && <p className="text-red-400 text-sm">{authError}</p>}
+          <button
+            className="py-3 bg-indigo-600 text-white border-none rounded-lg text-base cursor-pointer transition-colors hover:bg-indigo-700 w-full"
+            type="submit"
+            data-testid="auth-submit"
+          >
             {authView === 'login' ? 'Login' : 'Create Account'}
           </button>
         </form>
