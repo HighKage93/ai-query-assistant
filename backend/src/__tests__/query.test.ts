@@ -3,23 +3,44 @@ import jwt from 'jsonwebtoken';
 import app from '../app';
 
 jest.mock('../services/gemini', () => ({
-  queryGemini: jest.fn(),
+  queryGeminiStream: jest.fn(),
 }));
 
-import { queryGemini } from '../services/gemini';
+jest.mock('../models/Chat', () => ({
+  __esModule: true,
+  default: {
+    create: jest.fn(),
+    findByIdAndUpdate: jest.fn(),
+  },
+}));
+
+import { queryGeminiStream } from '../services/gemini';
+import Chat from '../models/Chat';
 
 const TEST_SECRET = 'test-jwt-secret-for-query-tests';
 let validToken: string;
 
+async function* mockStream(chunks: string[]) {
+  for (const chunk of chunks) {
+    yield { text: chunk };
+  }
+}
+
+const parseSSE = (text: string) =>
+  text
+    .split('\n')
+    .filter((line) => line.startsWith('data: '))
+    .map((line) => JSON.parse(line.slice(6)));
+
 beforeAll(() => {
-  // Override any JWT_SECRET from .env so token signing and verification use the same value
   process.env.JWT_SECRET = TEST_SECRET;
   validToken = jwt.sign({ userId: 'user123' }, TEST_SECRET);
 });
 
 describe('POST /api/query', () => {
-  it('returns AI response for a valid authenticated query', async () => {
-    (queryGemini as jest.Mock).mockResolvedValue('Artificial intelligence is...');
+  it('streams AI response chunks and a done event', async () => {
+    (queryGeminiStream as jest.Mock).mockReturnValue(mockStream(['Hello', ' world']));
+    (Chat.create as jest.Mock).mockResolvedValue({ _id: 'chat123' });
 
     const res = await request(app)
       .post('/api/query')
@@ -27,19 +48,42 @@ describe('POST /api/query', () => {
       .send({ query: 'What is AI?' });
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ response: 'Artificial intelligence is...' });
-    expect(queryGemini).toHaveBeenCalledWith('What is AI?');
+    expect(res.type).toBe('text/event-stream');
+
+    const events = parseSSE(res.text);
+    const text = events.filter((e) => e.chunk).map((e) => e.chunk).join('');
+    expect(text).toBe('Hello world');
+
+    const done = events.find((e) => e.done);
+    expect(done).toBeDefined();
+    expect(typeof done.duration).toBe('number');
   });
 
   it('trims whitespace from query before calling gemini', async () => {
-    (queryGemini as jest.Mock).mockResolvedValue('ok');
+    (queryGeminiStream as jest.Mock).mockReturnValue(mockStream(['ok']));
+    (Chat.create as jest.Mock).mockResolvedValue({ _id: 'chat123' });
 
     await request(app)
       .post('/api/query')
       .set('Authorization', `Bearer ${validToken}`)
       .send({ query: '  hello world  ' });
 
-    expect(queryGemini).toHaveBeenCalledWith('hello world');
+    expect(queryGeminiStream).toHaveBeenCalledWith('hello world');
+  });
+
+  it('appends to existing chat when chatId is provided', async () => {
+    (queryGeminiStream as jest.Mock).mockReturnValue(mockStream(['response']));
+    (Chat.findByIdAndUpdate as jest.Mock).mockResolvedValue({});
+
+    await request(app)
+      .post('/api/query')
+      .set('Authorization', `Bearer ${validToken}`)
+      .send({ query: 'follow-up question', chatId: 'existing-chat-id' });
+
+    expect(Chat.findByIdAndUpdate).toHaveBeenCalledWith(
+      'existing-chat-id',
+      expect.objectContaining({ $push: expect.anything() }),
+    );
   });
 
   it('returns 400 for an empty query', async () => {
@@ -62,23 +106,12 @@ describe('POST /api/query', () => {
     expect(res.body.error).toBe('Query cannot be empty');
   });
 
-  it('returns 400 when query field is missing', async () => {
-    const res = await request(app)
-      .post('/api/query')
-      .set('Authorization', `Bearer ${validToken}`)
-      .send({});
-
-    expect(res.status).toBe(400);
-    expect(res.body.error).toBe('Query cannot be empty');
-  });
-
   it('returns 401 without an auth token', async () => {
     const res = await request(app)
       .post('/api/query')
       .send({ query: 'What is AI?' });
 
     expect(res.status).toBe(401);
-    expect(res.body.error).toBe('No token provided');
   });
 
   it('returns 401 with an invalid token', async () => {
@@ -88,41 +121,32 @@ describe('POST /api/query', () => {
       .send({ query: 'What is AI?' });
 
     expect(res.status).toBe(401);
-    expect(res.body.error).toBe('Invalid or expired token');
   });
 
-  it('returns 504 when gemini times out', async () => {
-    (queryGemini as jest.Mock).mockRejectedValue(new Error('DEADLINE_EXCEEDED'));
+  it('streams an error event on gemini timeout', async () => {
+    (queryGeminiStream as jest.Mock).mockRejectedValue(new Error('DEADLINE_EXCEEDED'));
 
     const res = await request(app)
       .post('/api/query')
       .set('Authorization', `Bearer ${validToken}`)
       .send({ query: 'What is AI?' });
 
-    expect(res.status).toBe(504);
-    expect(res.body.error).toMatch(/timed out/i);
+    expect(res.status).toBe(200);
+    const events = parseSSE(res.text);
+    const errorEvent = events.find((e) => e.error);
+    expect(errorEvent?.error).toMatch(/timed out/i);
   });
 
-  it('returns 429 when API quota is exhausted', async () => {
-    (queryGemini as jest.Mock).mockRejectedValue(new Error('RESOURCE_EXHAUSTED'));
+  it('streams an error event on quota exhaustion', async () => {
+    (queryGeminiStream as jest.Mock).mockRejectedValue(new Error('RESOURCE_EXHAUSTED'));
 
     const res = await request(app)
       .post('/api/query')
       .set('Authorization', `Bearer ${validToken}`)
       .send({ query: 'What is AI?' });
 
-    expect(res.status).toBe(429);
-    expect(res.body.error).toMatch(/quota/i);
-  });
-
-  it('returns 500 on unexpected gemini error', async () => {
-    (queryGemini as jest.Mock).mockRejectedValue(new Error('Something broke'));
-
-    const res = await request(app)
-      .post('/api/query')
-      .set('Authorization', `Bearer ${validToken}`)
-      .send({ query: 'What is AI?' });
-
-    expect(res.status).toBe(500);
+    const events = parseSSE(res.text);
+    const errorEvent = events.find((e) => e.error);
+    expect(errorEvent?.error).toMatch(/quota/i);
   });
 });

@@ -17,7 +17,7 @@
   "rules": {
     "react/react-in-jsx-scope": "off",
     "react/prop-types": "off",
-    "react/forbid-component-props": ["error", { "forbid": ["style"] }],
+    "react/forbid-dom-props": ["error", { "forbid": ["style"] }],
     "@typescript-eslint/no-explicit-any": "warn"
   },
   "env": {

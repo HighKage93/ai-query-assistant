@@ -25,7 +25,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 
     const hashed = await bcrypt.hash(password, 10);
     const user = await User.create({ username, password: hashed });
-    const token = jwt.sign({ userId: user._id }, JWT_SECRET(), { expiresIn: '24h' });
+    const token = jwt.sign({ userId: user._id }, JWT_SECRET(), { expiresIn: '12h' });
 
     res.status(201).json({ token, username: user.username });
   } catch {
@@ -47,7 +47,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const token = jwt.sign({ userId: user._id }, JWT_SECRET(), { expiresIn: '24h' });
+    const token = jwt.sign({ userId: user._id }, JWT_SECRET(), { expiresIn: '12h' });
     res.json({ token, username: user.username });
   } catch {
     res.status(500).json({ error: 'Login failed' });

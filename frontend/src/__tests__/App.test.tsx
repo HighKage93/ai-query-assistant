@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import App from '../App';
 import * as api from '../api';
 
@@ -7,32 +8,37 @@ vi.mock('../api', () => ({
   login: vi.fn(),
   register: vi.fn(),
   sendQuery: vi.fn(),
+  streamQuery: vi.fn(),
+  getChats: vi.fn(),
+  getChat: vi.fn(),
+  deleteChat: vi.fn(),
 }));
 
 beforeEach(() => {
   localStorage.clear();
   vi.clearAllMocks();
+  vi.mocked(api.getChats).mockResolvedValue([]);
 });
 
 const submitAuth = () => fireEvent.click(screen.getByTestId('auth-submit'));
 
 describe('Auth screen', () => {
   it('renders login form by default', () => {
-    render(<App />);
+    render(<MemoryRouter><App /></MemoryRouter>);
     expect(screen.getByPlaceholderText('Username')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Password')).toBeInTheDocument();
     expect(screen.getByTestId('auth-submit')).toHaveTextContent('Login');
   });
 
   it('switches to register form when Register tab is clicked', () => {
-    render(<App />);
+    render(<MemoryRouter><App /></MemoryRouter>);
     fireEvent.click(screen.getByRole('button', { name: 'Register' }));
     expect(screen.getByTestId('auth-submit')).toHaveTextContent('Create Account');
   });
 
   it('shows auth error when login fails', async () => {
     vi.mocked(api.login).mockResolvedValue({ error: 'Invalid credentials' });
-    render(<App />);
+    render(<MemoryRouter><App /></MemoryRouter>);
 
     fireEvent.change(screen.getByPlaceholderText('Username'), { target: { value: 'user' } });
     fireEvent.change(screen.getByPlaceholderText('Password'), { target: { value: 'wrong' } });
@@ -45,7 +51,7 @@ describe('Auth screen', () => {
 
   it('shows auth error when registration fails', async () => {
     vi.mocked(api.register).mockResolvedValue({ error: 'Username already taken' });
-    render(<App />);
+    render(<MemoryRouter><App /></MemoryRouter>);
 
     fireEvent.click(screen.getByRole('button', { name: 'Register' }));
     fireEvent.change(screen.getByPlaceholderText('Username'), { target: { value: 'taken' } });
@@ -59,7 +65,7 @@ describe('Auth screen', () => {
 
   it('clears auth error when switching tabs', async () => {
     vi.mocked(api.login).mockResolvedValue({ error: 'Invalid credentials' });
-    render(<App />);
+    render(<MemoryRouter><App /></MemoryRouter>);
 
     fireEvent.change(screen.getByPlaceholderText('Username'), { target: { value: 'user' } });
     fireEvent.change(screen.getByPlaceholderText('Password'), { target: { value: 'wrong' } });
@@ -75,7 +81,7 @@ describe('Auth screen', () => {
 describe('Chat screen', () => {
   const loginSuccessfully = async () => {
     vi.mocked(api.login).mockResolvedValue({ token: 'fake-token', username: 'testuser' });
-    render(<App />);
+    render(<MemoryRouter><App /></MemoryRouter>);
     fireEvent.change(screen.getByPlaceholderText('Username'), { target: { value: 'testuser' } });
     fireEvent.change(screen.getByPlaceholderText('Password'), { target: { value: 'password123' } });
     submitAuth();
@@ -89,13 +95,19 @@ describe('Chat screen', () => {
     expect(screen.getByPlaceholderText('Type your question...')).toBeInTheDocument();
   });
 
-  it('shows empty state prompt on a fresh session', async () => {
+  it('shows empty state on a fresh session', async () => {
     await loginSuccessfully();
-    expect(screen.getByText('Ask me anything...')).toBeInTheDocument();
+    expect(screen.getByText('Ask me anything')).toBeInTheDocument();
   });
 
-  it('sends query and displays both user message and AI response', async () => {
-    vi.mocked(api.sendQuery).mockResolvedValue({ response: 'AI says hello!' });
+  it('sends query and displays streamed response', async () => {
+    vi.mocked(api.streamQuery).mockImplementation(
+      async (_q, _cid, _tok, onChunk, onDone) => {
+        onChunk('AI says ');
+        onChunk('hello!');
+        onDone(500, 'chat-1');
+      },
+    );
     await loginSuccessfully();
 
     fireEvent.change(screen.getByPlaceholderText('Type your question...'), {
@@ -110,7 +122,11 @@ describe('Chat screen', () => {
   });
 
   it('shows query error when AI request fails', async () => {
-    vi.mocked(api.sendQuery).mockResolvedValue({ error: 'API quota exceeded' });
+    vi.mocked(api.streamQuery).mockImplementation(
+      async (_q, _cid, _tok, _onChunk, _onDone, onError) => {
+        onError('API quota exceeded');
+      },
+    );
     await loginSuccessfully();
 
     fireEvent.change(screen.getByPlaceholderText('Type your question...'), {
@@ -130,7 +146,11 @@ describe('Chat screen', () => {
   });
 
   it('auto-logs out when server returns a token error', async () => {
-    vi.mocked(api.sendQuery).mockResolvedValue({ error: 'Invalid or expired token' });
+    vi.mocked(api.streamQuery).mockImplementation(
+      async (_q, _cid, _tok, _onChunk, _onDone, onError) => {
+        onError('Invalid or expired token');
+      },
+    );
     await loginSuccessfully();
 
     fireEvent.change(screen.getByPlaceholderText('Type your question...'), {
