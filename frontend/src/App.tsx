@@ -4,6 +4,7 @@ import { login as apiLogin, register as apiRegister, streamQuery, getChats, getC
 import ChatSidebar, { ChatMeta } from './components/ChatSidebar';
 import MarkdownMessage from './components/MarkdownMessage';
 import EmptyState from './components/EmptyState';
+import Portfolio from './pages/Portfolio';
 
 type AuthView = 'login' | 'register';
 
@@ -359,7 +360,7 @@ function ChatPage({ token, username, onLogout }: { token: string; username: stri
 
 // ── Root ─────────────────────────────────────────────────────────────────────
 
-export default function App() {
+function AuthedApp() {
   const [token, setToken] = useState(() => localStorage.getItem('token') || '');
   const [username, setUsername] = useState(() => localStorage.getItem('username') || '');
 
@@ -379,6 +380,15 @@ export default function App() {
       <Route path="/" element={<ChatPage token={token} username={username} onLogout={handleLogout} />} />
       <Route path="/chat/:chatId" element={<ChatPage token={token} username={username} onLogout={handleLogout} />} />
       <Route path="*" element={<ChatPage token={token} username={username} onLogout={handleLogout} />} />
+    </Routes>
+  );
+}
+
+export default function App() {
+  return (
+    <Routes>
+      <Route path="/portfolio" element={<Portfolio />} />
+      <Route path="/*" element={<AuthedApp />} />
     </Routes>
   );
 }
